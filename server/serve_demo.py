@@ -1,9 +1,16 @@
 from bottle import route, run, template, static_file
 import paho.mqtt.client as mqtt
 import json
+import os
 
-# broker_ip = '127.0.0.1'
+# mode = os.environ.get('MODE')
+
+# if not mode or mode == 'prod':
+#     broker_ip = '192.168.0.10'
+# else:
+#     broker_ip = '127.0.0.1'
 broker_ip = '192.168.0.10'
+
 mqtt_topic = "esys/GreenRhino/geiger"
 
 data_keys = ['count_per_minute', 'random_number']
@@ -28,8 +35,8 @@ def geiger_view():
     if len(recent) != len(data_keys):
         recent = dict.fromkeys(data_keys)
 
-    print(recent)
     recent['random_password'] = 'pUR3!y?r4nd0M-noT@1MPL3meNt3d_yEt'
+    print(recent)
 
     return template('''
 <!DOCTYPE html>
@@ -91,6 +98,15 @@ if({{do_chart}}){
                 spanGaps: false,
             }]
         },
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero:true
+                    }
+                }]
+            }
+        }
     });
 }
 </script>
