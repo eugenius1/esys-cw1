@@ -18,6 +18,9 @@ last_sec = 0
 prev_time_dif = 0
 time_dif = 0
 
+global led
+led = machine.Pin(0, machine.Pin.OUT)
+
 def do_connect(ssid='EEERover', password='exhibition'):
 	import network
 	sta_if = network.WLAN(network.STA_IF)
@@ -35,6 +38,8 @@ def do_connect(ssid='EEERover', password='exhibition'):
 do_connect()
 
 def callback(p):
+
+	led.low()
 	global trigger0
 	global trigger1
 	global geiger_count  #counts per second variable
@@ -74,6 +79,8 @@ def callback(p):
 		#print(random_num)
 
 		geiger_count = geiger_count + 1
+	
+	led.high()
 		
 
 #pin interrupt setup

@@ -2,8 +2,8 @@ from bottle import route, run, template, static_file
 import paho.mqtt.client as mqtt
 import json
 
-broker_ip = '127.0.0.1'
-# broker_ip = '192.168.0.10'
+# broker_ip = '127.0.0.1'
+broker_ip = '192.168.0.10'
 mqtt_topic = "esys/GreenRhino/geiger"
 
 data_keys = ['count_per_minute', 'random_number']
@@ -67,7 +67,7 @@ if({{do_chart}}){
     var myChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ["", "", "", "", "", ""],
+            labels: ["", "", "", "", "", "", ""],
             datasets: [{
                 label: 'Radioactivity over time',
                 fill: false,
@@ -87,7 +87,7 @@ if({{do_chart}}){
                 pointHoverBorderWidth: 2,
                 pointRadius: 1,
                 pointHitRadius: 10,
-                data: [65, 59, 80, 81, 56, 55, 40],
+                data: [25, 19, 20, 31, 16, 15, 12],
                 spanGaps: false,
             }]
         },
