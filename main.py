@@ -22,6 +22,9 @@ global led
 led = machine.Pin(0, machine.Pin.OUT)
 
 def do_connect(ssid='EEERover', password='exhibition'):
+	"""Connect to a WiFi access-point as a client
+	and switch off WiFi hosting function (AP).
+	"""
 	import network
 	sta_if = network.WLAN(network.STA_IF)
 	if not sta_if.isconnected():
@@ -38,6 +41,8 @@ def do_connect(ssid='EEERover', password='exhibition'):
 do_connect()
 
 def callback(p):
+	"""Interrupt callback function
+	"""
 
 	led.low()
 	global trigger0
@@ -88,6 +93,7 @@ from machine import Pin
 p4 = Pin(4, Pin.IN)
 p4.irq(trigger=Pin.IRQ_FALLING, handler=callback)
 
+# setup and make the connection to MQTT broker
 client = MQTTClient(machine.unique_id(), mqqt_broker_ip)
 client.connect()
 
@@ -103,10 +109,12 @@ while True:
 		print('Random Number')
 		print(random_num)
 		
+		# Prepare JSON with CPMs and random number
 		payload = ujson.dumps({'Geiger': {'count_per_minute': geiger_count, 'random_number': random_num}})
 		print('Published:', payload)
 		client.publish(mqqt_topic, payload)
 
+		# restart timer/ counting/ aggregation
 		last_sec = start
 		geiger_count = 0
 		random_num = 0

@@ -3,22 +3,27 @@ import paho.mqtt.client as mqtt
 import json
 import os
 
-# mode = os.environ.get('MODE')
+debug = False
 
-# if not mode or mode == 'prod':
-#     broker_ip = '192.168.0.10'
-# else:
-#     broker_ip = '127.0.0.1'
-broker_ip = '192.168.0.10'
+if debug:
+    broker_ip = '127.0.0.1'
+else:
+    broker_ip = '192.168.0.10'
 
 mqtt_topic = "esys/GreenRhino/geiger"
 
+# keys of Geiger JSON object with data
 data_keys = ['count_per_minute', 'random_number']
 
-@route('/hello/<name>')
-def hello(name='World'):
-    return template('<b>Hello {{name}}</b>!', name=name)
+global message_list
+message_list = []
 
+data_agg = {}
+# Data aggregator - a dictionary of lists
+# the key is the name from data_keys
+# newer data is appended to the end of the list
+
+# path for static files like images
 @route('/static/<filename:path>')
 def send_static(filename):
     return static_file(filename, root='static')
@@ -42,7 +47,7 @@ def geiger_view():
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<title>Green Rhino</title>
+<title>Crpto-key | Green Rhino</title>
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 </head>
 <body>
@@ -115,14 +120,31 @@ if({{do_chart}}){
         ''', **recent, do_chart='true')
 
 
-global message_list
-message_list = []
-data_agg = {}
+# callbacks for MQTT actions
+def on_connect(client, userdata, flags, rc):
+    print('Connected!')
+
+def on_log(client, userdata, level, buf):
+    print("log: ",buf)
+
+def on_message(client, userdata, message):
+    global msg
+
+    # message comes as a byte string, 
+    # convert to Python string, and then to a dictionary
+    msg = json.loads(message.payload.decode("utf-8"))
+    print('Received <{raw}>, storing as {typ}'.format(typ=type(msg), raw=message.payload))
+    message_list.append(msg)
+    print('Stored messages count:', len(message_list))
+    
+    process_new_message(msg)
 
 def process_new_message(message):
     if not isinstance(message, dict):
         print('got {} instead of dict'.format(type(message)))
     try:
+        # aggregate data from this message into data_agg,
+        # which is a dictionary of lists
         for key in data_keys:
             value = message['Geiger'][key]
             if key not in data_agg:
@@ -133,33 +155,22 @@ def process_new_message(message):
         print('derp! missing some key')
         print(e)
 
-def on_message(client, userdata, message):
-    global msg
-    msg = json.loads(message.payload.decode("utf-8"))
-    print('Received <{raw}>, storing as {typ}'.format(typ=type(msg), raw=message.payload))
-    message_list.append(msg)
-    print('Stored messages count:', len(message_list))
-    process_new_message(msg)
-
-def on_connect(client, userdata, flags, rc):
-    print('Connected!')
-
-def on_log(client, userdata, level, buf):
-    print("log: ",buf)
 
 mclient = mqtt.Client()
+
+# Attach callback functions
 mclient.on_connect = on_connect
 mclient.on_message = on_message
 mclient.on_log = on_log
 
+# Connect to broker
 mclient.connect(broker_ip)
 
-mclient.loop_start()    #start the loop
+# start the MQQT subscribe loop
+mclient.loop_start()
 mclient.subscribe(mqtt_topic)
-# time.sleep(5)
-# mclient.loop_stop()
 
 run(host='localhost', port=8080, reloader=True)
+# blocking function call above, so the loop_stop below never runs
 
 mclient.loop_stop()
-# mclient.loop_forever()

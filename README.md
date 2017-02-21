@@ -1,8 +1,6 @@
-# esys-cw1
-Embedded Systems coursework 1 - IoT device - Geiger counter
+# Crypto-key
 
-`MicroPython-c6aa47`
-`micropythoN`
+Embedded Systems coursework 1 - IoT device - Random number and random password generator using a Geiger counter
 
 # Geiger
 
@@ -25,3 +23,27 @@ To get your CPM values, you'll need to count how many characters you receive in 
 
 11000110101
 24
+
+# Connections
+
+Check main.py
+
+# Install
+
+Port `/dev/ttyUSB0` is usually the right one on Linux. Check your device's actual port and replace it in the ampy command below.
+
+```bash
+sudo apt-get install adafruit-ampy
+ampy -p /dev/ttyUSB0 put main.py
+```
+
+# Notes
+
+The binary file `esp8266-20170108-v1.8.7.bin` was used to reinstall the firmware
+
+## Device acting as a WiFi Access-Point
+
+For example, our device's WiFi had the following properties:
+
+SSID: `MicroPython-c6aa47`  
+Password: `micropythoN`
