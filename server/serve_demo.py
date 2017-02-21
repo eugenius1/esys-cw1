@@ -1,9 +1,11 @@
-from bottle import route, run, template, static_file
-import paho.mqtt.client as mqtt
-import json
+import string
 import os
+import json
 
-debug = False
+import paho.mqtt.client as mqtt
+from bottle import route, run, template, static_file
+
+debug = True
 
 if debug:
     broker_ip = '127.0.0.1'
@@ -15,6 +17,11 @@ mqtt_topic = "esys/GreenRhino/geiger"
 # keys of Geiger JSON object with data
 data_keys = ['count_per_minute', 'random_number']
 
+password_length = 20
+# number of possible password characters is 64, a power of 2
+password_chars = string.ascii_letters + string.digits + '!@'
+password_chars_count = len(password_chars)
+
 global message_list
 message_list = []
 
@@ -22,6 +29,14 @@ data_agg = {}
 # Data aggregator - a dictionary of lists
 # the key is the name from data_keys
 # newer data is appended to the end of the list
+
+global random_password
+random_password = ''
+
+def random_password_character(choice):
+    choice = int(choice)
+    print('choosing char #', choice)
+    return password_chars[choice % password_chars_count]
 
 # path for static files like images
 @route('/static/<filename:path>')
@@ -35,19 +50,23 @@ def geiger_view():
         if k in data_agg:
             recent[k] = data_agg[k][-1]
 
-    print(recent)
-
     if len(recent) != len(data_keys):
         recent = dict.fromkeys(data_keys)
 
-    recent['random_password'] = 'pUR3!y?r4nd0M-noT@1MPL3meNt3d_yEt'
+    recent['random_password'] = random_password
     print(recent)
+
+    # graph_data = [25, 19, 20, 31, 16, 15, 12]
+    graph_data = data_agg.get('count_per_minute', [])
+    graph_data_str = json.dumps(graph_data)
+    graph_labels_str ='[' + (', ' * (len(graph_data)-1)) + ']'
+
 
     return template('''
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<title>Crpto-key | Green Rhino</title>
+<title>CrptoKey | Green Rhino</title>
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 </head>
 <body>
@@ -65,7 +84,7 @@ def geiger_view():
         <span class="col-sm-8"><code>{{random_password}}</code></span>
     </p>
     <p class="row">
-        <span class="col-sm-4"><strong>Radioactivity</strong>: </span>
+        <span class="col-sm-4"><strong>Current radioactivity</strong>: </span>
         <span class="col-sm-8">{{count_per_minute}} CPM <small>(counts per minute)</small></span>
     </p>
     <div class="row"><canvas id="radioactivity-chart" width="400" height="400"></canvas></div>
@@ -79,7 +98,7 @@ if({{do_chart}}){
     var myChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ["", "", "", "", "", "", ""],
+            labels: {{graph_labels}},
             datasets: [{
                 label: 'Radioactivity over time',
                 fill: false,
@@ -99,7 +118,7 @@ if({{do_chart}}){
                 pointHoverBorderWidth: 2,
                 pointRadius: 1,
                 pointHitRadius: 10,
-                data: [25, 19, 20, 31, 16, 15, 12],
+                data: {{graph_data}},
                 spanGaps: false,
             }]
         },
@@ -117,7 +136,9 @@ if({{do_chart}}){
 </script>
 </body>
 </html>
-        ''', **recent, do_chart='true')
+        ''', **recent, do_chart='true', 
+        graph_labels=graph_labels_str,
+        graph_data = graph_data_str)
 
 
 # callbacks for MQTT actions
@@ -151,6 +172,13 @@ def process_new_message(message):
                 data_agg[key] = [value]
             else:
                 data_agg[key].append(value)
+
+        random_num = data_agg['random_number'][-1]
+        global random_password
+        random_password = random_password_character(random_num) + random_password
+        if len(random_password) >= password_length:
+            random_password = random_password[:password_length]
+
     except KeyError as e:
         print('derp! missing some key')
         print(e)
