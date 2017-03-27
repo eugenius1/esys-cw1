@@ -1,6 +1,6 @@
 # Crypto-key
 
-Embedded Systems coursework 1 - IoT device
+Embedded Systems coursework 1, IoT device, by Eusebius Ngemera and Zoe Williamson (Team *GreenRhino*).
 
 Random number and random password generator using a Geiger counter. A user uses the web client to view and interact.
 
